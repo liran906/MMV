@@ -8,8 +8,8 @@ import random
 import json
 
 def BaiduTrans(input):
-    appid = '20240217001965579'  # 填写你的appid
-    secretKey = '38LWaZDS5O5EiTIPGJBH'  # 填写你的密钥
+    appid = ''  # 填写你的appid
+    secretKey = ''  # 填写你的密钥
 
     httpClient = None
     myurl = '/api/trans/vip/translate'
