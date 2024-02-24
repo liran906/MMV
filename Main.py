@@ -23,7 +23,7 @@ def version_discriptions():
         'v2.0 2024.2.16\nUI界面重新设计\n增加词汇释义功能\n'+
         'v2.1 2024.2.17\n增加复习所有词汇功能\n复习时对其余复习选项锁定,反之亦然\n'+
         'v2.2 2024.2.20\n增加中文翻译结果，并可手动修改（有道的翻译有时候是真不准啊）\n增加单词语音播放\n增加按录入顺序复习选项\n增加单词默写检查功能\n增加提前结束当前复习功能\n增加复习时间及时长显示\n增加输入框默认提示\n'
-        'v2.3 2024.2.24\n增加当前剩余单词数量、错误单词数量、总体单词数量统计\n修复了默写功能的逻辑bug\n后面应该暂时不再更新，要专心背单词了\n现在每多加一个功能都很困难，要调整前面各种方法中的代码，还可能产生意想不到的逻辑错误，体会到了代码可维护性的重要'
+        'v2.3 2024.2.24\n增加听音拼写和看义拼写两种拼写模式\n增加当前剩余单词数量、错误单词数量、总体单词数量统计\n修复了默写功能的逻辑bug\n后面应该暂时不再更新，要专心背单词了\n现在每多加一个功能都很困难，要调整前面各种方法中的代码，还可能产生意想不到的逻辑错误，体会到了代码可维护性的重要'
     )
 
 class VocabApp(Frame):
@@ -134,8 +134,6 @@ class VocabApp(Frame):
         self.button_review.grid(row=3, padx=(12,3), pady=3, sticky=EW)
         self.button_all = Button(self, text='所有词汇', font=("等线", 14), command=self.al_walk)
         self.button_all.grid(row=4, padx=(12,3), pady=3, sticky=EW)
-        self.button_specific = Button(self, text='复习错题本', font=("等线", 14), command=self.exit)
-        self.button_specific.grid(row=5, padx=(12,3), pady=(3, 6), sticky=EW)
         self.button_amend = Button(self, text='更改注释', font=("等线", 14), state=DISABLED, command=self.amend_1)
         self.button_amend.grid(row=2, column=1, padx=(3,12), pady=3, sticky=EW)
 
@@ -147,8 +145,10 @@ class VocabApp(Frame):
         self.button_srpop.grid(row=4, column=1, padx=(3,12), pady=3, sticky=EW)
 
         # 默写
-        self.button_recite = Button(self, text='默写检查', font=("等线", 14), state=DISABLED, command=self.recite)
+        self.button_recite = Button(self, text='拼写检查', font=("等线", 14), state=DISABLED, command=self.recite)
         self.button_recite.grid(row=5, column=1, padx=(3,12), pady=3, sticky=EW)
+        self.button_recitemode = Button(self, text='听音拼写', font=("等线", 14), state=DISABLED, command=self.recite_change_mode)
+        self.button_recitemode.grid(row=5, padx=(12,3), pady=(3, 6), sticky=EW)
         
         # 功能按钮：列1
         self.button_yes = Button(self, text='记住了', font=("等线", 14), state=DISABLED, command=self.yes_btn)
@@ -170,8 +170,7 @@ class VocabApp(Frame):
         self.button_previous.config(width=11) # 列宽
 
         self.menu_button_set = {
-            self.button_submit, self.button_today, self.button_review, self.button_all, self.button_specific,
-            self.button_order
+            self.button_submit, self.button_today, self.button_review, self.button_all, self.button_order
         }
         self.function_button_set = {
             self.button_previous, self.button_reset, self.button_recite,
@@ -181,7 +180,7 @@ class VocabApp(Frame):
         for b in {
             self.button_order, self.button_submit, self.button_today, self.button_review, self.button_all,
             self.button_previous, self.button_back, self.button_reset, self.button_recite,
-            self.button_yes, self.button_hint, self.button_no, self.button_specific,self.button_exit,
+            self.button_yes, self.button_hint, self.button_no, self.button_recitemode,self.button_exit,
             self.button_sradd, self.button_amend, self.button_srpop
         }:
             b.config(height=4) # 统一设置行高
@@ -218,6 +217,7 @@ class VocabApp(Frame):
             self.txt_display.set(self.new_w)
             self.defn_area.insert('1.0',self.def_after_judge)
             self.defn_area.config(state=DISABLED)
+            Sound.play_mp3(self.new_w)
             self.button_yes.config(state=DISABLED)
             self.button_no.config(text='下一个')
             return
@@ -288,7 +288,8 @@ class VocabApp(Frame):
                 self.defn_area.config(state=DISABLED)
                 self.button_amend.config(state=NORMAL)
                 Sound.check_exist(self.vocab_in)
-            except TypeError:
+            except TypeError as e:
+                print(datetime.now().strftime('%H:%M:%S')+':',e)
                 mbox.showerror('单词有误','单词%s有误，请检查拼写，然后重试' % self.vocab_in)
                 return
         if self.recite_flag:
@@ -567,8 +568,11 @@ class VocabApp(Frame):
             self.Entry_1.delete(0, END)
             return
         self.vocab_in = self.Entry_1.get().lower()
-        if self.recite_flag and not self.recite_count and self.vocab_in == '':
+        if self.recite_flag and not self.recite_count and self.vocab_in == '' and not self.word_area.cget('text') == 'Input in Entry box':
             self.yes_btn()
+            return
+        if self.recite_flag and self.recite_count >= 1 and self.vocab_in == '':
+            self.no_btn()
             return
         if re.match("^[a-zA-Z]+$", self.vocab_in) is None:
             mbox.showinfo('Message', '请正确输入单个词汇')
@@ -779,24 +783,28 @@ class VocabApp(Frame):
     def recite(self):
         if not self.recite_flag:
             self.recite_flag = True
-            self.button_recite.config(text='默写中')
+            self.button_recitemode.config(state=NORMAL)
+            self.button_recite.config(text='拼写中')
             self.button_yes.config(text='下一个')
             self.defn_area.config(state=NORMAL)
             self.defn_area.delete('1.0','end')
-            self.defn_area.insert('1.0', self.get_definition())
+            if self.button_recitemode.cget('text') == '看义拼写':
+                self.defn_area.insert('1.0', self.get_definition())
             self.defn_area.config(state=DISABLED)
             self.button_yes.config(state=DISABLED)
             self.button_hint.config(state=DISABLED)
             self.button_previous.config(state=DISABLED)
             self.txt_display.set('Input in Entry box')
             self.recite_count = 0
-            Sound.play_mp3(self.new_w)
+            if self.button_recitemode.cget('text') == '听音拼写':
+                Sound.play_mp3(self.new_w)
         else:
             self.recite_flag = False
+            self.button_recitemode.config(state=DISABLED)
             self.button_yes.config(state=NORMAL)
             self.button_hint.config(state=NORMAL)
             self.button_previous.config(state=NORMAL)
-            self.button_recite.config(text='默写检查')
+            self.button_recite.config(text='拼写检查')
             self.button_yes.config(text='记住了')
             self.button_no.config(text='没记住')
             self.defn_area.config(state=NORMAL)
@@ -804,13 +812,28 @@ class VocabApp(Frame):
             self.defn_area.config(state=DISABLED)
             self.txt_display.set(self.new_w)
 
+    def recite_change_mode(self):
+        if self.button_recitemode.cget('text') == '听音拼写':
+            self.button_recitemode.config(text='看义拼写')
+            self.defn_area.config(state=NORMAL)
+            self.defn_area.insert('1.0', self.get_definition())
+            self.defn_area.config(state=DISABLED)
+        elif self.button_recitemode.cget('text') == '看义拼写':
+            self.button_recitemode.config(text='听音拼写')
+            self.defn_area.config(state=NORMAL)
+            self.defn_area.delete('1.0', END)
+            self.defn_area.config(state=DISABLED)
+            Sound.play_mp3(self.new_w)
+
     def recite_afoot(self):
         self.recite_count = 0
         self.defn_area.config(state=NORMAL)
         self.defn_area.delete('1.0','end')
-        self.defn_area.insert('1.0', self.get_definition())
+        if self.button_recitemode.cget('text') == '看义拼写':
+            self.defn_area.insert('1.0', self.get_definition())
         self.defn_area.config(state=DISABLED)
-        Sound.play_mp3(self.new_w)
+        if self.button_recitemode.cget('text') == '听音拼写':
+            Sound.play_mp3(self.new_w)
 
     def recite_judge(self):
         self.recite_count += 1
@@ -819,6 +842,7 @@ class VocabApp(Frame):
                 self.no_btn()
                 return
             self.txt_display.set(self.new_w+' ✔')
+            Sound.play_mp3(self.new_w)
             self.button_yes.config(state=NORMAL)
             self.recite_count = 0
         elif self.recite_count == 1:
@@ -829,6 +853,7 @@ class VocabApp(Frame):
             return
         elif self.recite_count >= 3:
             self.txt_display.set(self.new_w)
+            Sound.play_mp3(self.new_w)
             # self.Entry_1.config(state=DISABLED)
             self.button_no.config(text='下一个')
         self.defn_area.config(state=NORMAL)
