@@ -57,19 +57,20 @@ class WordDefinition:
         self.chinese_only = ['中文：'+self.chinese]
         self.outcome = ['中文：'+self.chinese]
         self.outcome.append('发音：%s | 音节：%s' % (self.pronunciation, self.syllables))
-        for i, obj in enumerate(self.results):
-            index = i + 1
-            definition = obj.get('definition')
-            partOfSpeech = obj.get('partOfSpeech')
-            synonyms = format_list(obj.get('synonyms'))
-            derivation = format_list(obj.get('derivation'))
-            examples = format_list(obj.get('examples'))
-            verbGroup = obj.get('verbGroup') # 暂时无用
-            hasTypes = obj.get('hasTypes')   # 同上
-            in_format = '%s (%s) - %s 释义：%s | 近义：%s | 衍生：%s | 例句：%s' % (
-                self.word,index,partOfSpeech,definition,synonyms,derivation,examples
-                )
-            self.outcome.append(in_format)
+        if self.results:
+            for i, obj in enumerate(self.results):
+                index = i + 1
+                definition = obj.get('definition')
+                partOfSpeech = obj.get('partOfSpeech')
+                synonyms = format_list(obj.get('synonyms'))
+                derivation = format_list(obj.get('derivation'))
+                examples = format_list(obj.get('examples'))
+                verbGroup = obj.get('verbGroup') # 暂时无用
+                hasTypes = obj.get('hasTypes')   # 同上
+                in_format = '%s (%s) - %s 释义：%s | 近义：%s | 衍生：%s | 例句：%s' % (
+                    self.word,index,partOfSpeech,definition,synonyms,derivation,examples
+                    )
+                self.outcome.append(in_format)
         self.iterate()
     
     def alter_cn_result(self, new_result):
